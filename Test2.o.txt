@@ -1,0 +1,489 @@
+Practical No. 1
+Aim: Implementation of Data partitioning through Range 
+CREATE TABLE tr (
+    id NUMBER,
+    name VARCHAR2(50),
+    purchased DATE
+)
+PARTITION BY RANGE (purchased) (
+    PARTITION p0 VALUES LESS THAN (DATE '1990-01-01'),
+    PARTITION p1 VALUES LESS THAN (DATE '1995-01-01'),
+    PARTITION p2 VALUES LESS THAN (DATE '2000-01-01'),
+    PARTITION p3 VALUES LESS THAN (DATE '2005-01-01'),
+    PARTITION p4 VALUES LESS THAN (DATE '2010-01-01'),
+    PARTITION p5 VALUES LESS THAN (DATE '2015-01-01'),
+    PARTITION p_future VALUES LESS THAN (MAXVALUE)
+);
+SELECT table_name, partitioned
+FROM user_tables
+WHERE table_name = 'TR';
+SELECT partition_name
+FROM user_tab_partitions
+WHERE table_name = 'TR';
+INSERT ALL
+  INTO tr VALUES (1, 'desk organiser', DATE '2003-10-15')
+  INTO tr VALUES (2, 'alarm clock', DATE '1997-11-05')
+  INTO tr VALUES (3, 'chair', DATE '2009-03-10')
+SELECT * FROM dual;
+SELECT * FROM tr;
+SELECT * FROM tr PARTITION (p2);
+SELECT * FROM tr PARTITION (p1);
+SELECT * FROM tr PARTITION (p3);
+SELECT COUNT(*) FROM tr;
+
+Practical No. 2
+Aim: Implementation of Analytical queries like Roll_UP, CUBE, First, Last 
+
+CREATE TABLE sales (
+    region VARCHAR2(20),
+    product VARCHAR2(20),
+    salesamount NUMBER
+);
+INSERT ALL
+INTO sales VALUES ('North', 'TV', 20000)
+INTO sales VALUES ('North', 'Mobile', 15000)
+INTO sales VALUES ('South', 'TV', 18000)
+INTO sales VALUES ('South', 'Mobile', 12000)
+INTO sales VALUES ('East', 'TV', 10000)
+INTO sales VALUES ('East', 'Mobile', 8000)
+SELECT * FROM dual;
+SELECT
+    NVL(region, 'ALL REGIONS') AS region,
+    NVL(product, 'TOTAL') AS product,
+    SUM(salesamount) AS totalsales
+FROM sales
+GROUP BY ROLLUP (region, product)
+ORDER BY region, product;
+
+
+
+Practical No. 3
+Aim: Implementation of Abstract Data Type & Reference
+
+CREATE TABLE Customer_reltab (
+    CustNo NUMBER NOT NULL,
+    CustName VARCHAR2(200) NOT NULL,
+    Street VARCHAR2(200) NOT NULL,
+    City VARCHAR2(200) NOT NULL,
+    State VARCHAR2(20) NOT NULL,
+    Zip VARCHAR2(20),
+    Phone1 VARCHAR2(20),
+    Phone2 VARCHAR2(20),
+    CONSTRAINT customer_pk PRIMARY KEY (CustNo)
+);
+DESC Customer_reltab;
+CREATE TABLE Stock_reltab (
+    StockNo NUMBER PRIMARY KEY,
+    Price NUMBER(10,2),
+    TaxRate NUMBER(5,2)
+);
+DESC Stock_reltab;
+CREATE TABLE PurchaseOrder_reltab (
+    PONo NUMBER PRIMARY KEY,
+    CustNo NUMBER,
+    OrderDate DATE,
+    TotalRet NUMBER(10,2),
+    TotalTax NUMBER(10,2),
+    Total NUMBER(10,2),
+    CONSTRAINT po_fk FOREIGN KEY (CustNo)
+        REFERENCES Customer_reltab(CustNo)
+);
+DESC PurchaseOrder_reltab;
+CREATE TABLE LineItems_reltab (
+    LineItemNo NUMBER,
+    PONo NUMBER,
+    StockNo NUMBER,
+    Quantity NUMBER,
+    Discount NUMBER(5,2),
+    CONSTRAINT li_pk PRIMARY KEY (PONo, LineItemNo),
+    CONSTRAINT li_po_fk FOREIGN KEY (PONo)
+        REFERENCES PurchaseOrder_reltab(PONo),
+    CONSTRAINT li_stock_fk FOREIGN KEY (StockNo)
+        REFERENCES Stock_reltab(StockNo)
+);
+DESC LineItems_reltab;
+INSERT INTO Customer_reltab
+VALUES (
+    104,
+    'New Customer Jane',
+    '321 Willow Ave',
+    'Dallas',
+    'TX',
+    '75001',
+    '555-3344',
+    NULL
+);
+INSERT INTO Stock_reltab
+VALUES (5004, 99.99, 0.065);
+INSERT INTO PurchaseOrder_reltab
+VALUES (
+    10003,
+    104,
+    TO_DATE('2025-11-22','YYYY-MM-DD'),
+    0.00,
+    0.00,
+    0.00
+);
+INSERT INTO LineItems_reltab
+VALUES (1, 10003, 5004, 3, 0.10);
+SELECT * FROM Customer_reltab;
+SELECT * FROM Stock_reltab;
+SELECT * FROM PurchaseOrder_reltab;
+SELECT * FROM LineItems_reltab;
+ 
+
+Practical No. 4
+Aim
+Installation and basic understanding of the Pentaho Data Integration Software.
+Objectives
+1. Download the Pentaho Data Integration software.
+2. Install Java Runtime Environment (JRE) and Java Development Kit (JDK).
+3. Set up JRE and JDK environment variables for Pentaho Data Integration.
+Theory: Pentaho Data Integration - Kettle ETL Tool
+Pentaho Data Integration (PDI), formerly known as Kettle (K.E.T.T.L.E - Kettle ETL
+Environment), is a leading open-source application used for Extract, Transform, and Load (ETL)
+processes. Kettle was acquired by Pentaho and is now maintained as Pentaho Data Integration.
+While traditionally categorized as an ETL tool, the concept as implemented in PDI is often slightly
+modified to ETTL, which stands for:
+● Extraction of data from source databases.
+● Transport of the data to an intermediate location.
+● Transformation of the data (cleaning, shaping, aggregating).
+● Loading of the data into a data warehouse or destination system.
+Kettle is essentially a set of tools and applications that facilitates comprehensive data manipulation
+across multiple sources and destinations.
+Main Components of Pentaho Data Integration 
+PDI is comprised of several key components that work together to design, execute, and monitor the data
+processes.
+● Spoon (The Designer):
+○ Spoon is the graphical design tool used to easily create ETTL transformations and
+jobs.
+○ It performs the typical data flow functions like reading, validating, refining, transforming,
+and writing data to a variety of different data sources and destinations.
+○ Transformations designed in Spoon are executed using the Pan application, and jobs are
+executed using the Kitchen application.
+● Pan (The Transformation Runner): 
+○ Pan is a command-line application specifically dedicated to running the data
+transformations designed in Spoon.
+○ It is used for execution in batch mode or as part of a scheduled script.
+● Chef (The Job Designer):
+○ Chef is the tool used to create jobs, which are workflows designed to automate complex
+sequences of steps, such as checking a database, executing a transformation (via Pan),
+sending an email, and moving files.
+○ It manages the control flow and sequencing of tasks.
+● Kitchen (The Job Runner):
+○ Kitchen is a command-line application that executes the jobs created in Chef in a batch
+mode.
+○ It is typically used in conjunction with an operating system's scheduler (like cron or Task
+Scheduler) to start and control the ETL processing at specified times.
+● Carte (The Web Server):
+○ Carte is a lightweight web server that allows for the remote monitoring and execution of
+PDI jobs and transformations.
+○ It enables users to check the status of running ETL processes through a standard web
+browser.
+
+Practical No. 5
+Aim
+Introduction to the R programming language.
+Objective
+To learn the basics of R Programming and how to download and install R.
+Theory: What is R Programming
+R is an interpreted computer programming language developed by Ross Ihaka and Robert Gentleman in
+1993. It is a software environment primarily used to analyze statistical information, graphical
+representation, and reporting.
+In the current era, R is one of the most important tools used by researchers, data analysts, statisticians, and
+marketers for retrieving, cleaning, analyzing, visualizing, and presenting data. R allows integration with
+procedures written in the C, C++, .Net, Python, and FORTRAN languages to improve efficiency.
+Installation of R
+R programming is a very popular language, and to work on it effectively, we must install two things: R
+and R Studio.
+R and R Studio work together to create a project on R. Installing R to the local computer is the first step.
+First, we must know which operating system we are using so that we can download the setup accordingly.
+The official site https://cloud.r-project.org provides binary files for major operating systems including
+Windows, Linux, and Mac OS. In some Linux distributions, R is installed by default, which we can verify
+from the console by entering R. 
+
+# Practical No 6: Aim: 
+To implement the Simple Linear Regression algorithm from scratch using Python and the NumPy 
+library to understand the underlying mathematical model and its fitting process.
+
+# using the Ordinary Least Squares (OLS) method.
+
+LinearRegression <- function() {
+  
+  model <- list(b0 = 0, b1 = 0)
+  
+  model$fit <- function(X, y) {
+    
+    # Calculate means
+    X_mean <- mean(X)
+    Y_mean <- mean(y)
+    
+    numerator <- 0
+    denominator <- 0
+    n <- length(X)
+    
+    # Calculate numerator and denominator for slope
+    for (i in 1:n) {
+      numerator <- numerator + (X[i] - X_mean) * (y[i] - Y_mean)
+      denominator <- denominator + (X[i] - X_mean)^2
+    }
+    
+    # Calculate slope (b1)
+    if (denominator == 0) {
+      model$b1 <<- 0
+    } else {
+      model$b1 <<- numerator / denominator
+    }
+    
+    # Calculate intercept (b0)
+    model$b0 <<- Y_mean - (model$b1 * X_mean)
+    
+    return(c(model$b0, model$b1))
+  }
+  
+  model$predict <- function(X) {
+    y_hat <- model$b0 + model$b1 * X
+    return(y_hat)
+  }
+  
+  return(model)
+}
+
+# ---------------- MAIN PROGRAM ----------------
+
+# Sample Data (Height and Weight)
+X_data <- c(173, 160, 154, 188, 168)
+y_data <- c(73, 65, 54, 80, 70)
+
+# Create model
+model <- LinearRegression()
+
+# Train model
+coefficients <- model$fit(X_data, y_data)
+
+cat("----- Practical No 6: Linear Regression from Scratch -----\n")
+cat("Y-Intercept (b0):", round(coefficients[1], 4), "\n")
+cat("Slope (b1):", round(coefficients[2], 4), "\n")
+
+# Prediction
+X_predict <- 165
+y_pred <- model$predict(X_predict)
+
+cat("\nPredicted weight for height", X_predict, "cm:", 
+    round(y_pred, 2), "kg\n")
+
+
+# Practical No. 7: To apply and evaluate the Simple Linear Regression model using the high-level Scikit-learn library, 
+focusing on model training, prediction, and quantitative performance assessment.
+
+# X values (Feature: Height in cm)
+X <- c(173, 160, 154, 188, 168)
+
+# y values (Target: Weight in kg)
+y <- c(73, 65, 54, 80, 70)
+
+# Create data frame
+data <- data.frame(Height = X, Weight = y)
+
+# Train Linear Regression Model
+model <- lm(Weight ~ Height, data = data)
+
+# Predict y values
+y_hat <- predict(model, data)
+
+cat("---- Practical No. 7: Analysis of Regression ----\n\n")
+
+# Print predicted values
+cat("Predicted y values (y_hat):\n")
+print(y_hat)
+
+# Calculate Mean Squared Error (MSE)
+mse <- mean((y - y_hat)^2)
+cat("\nLoss Calculated (MSE):", round(mse, 4), "\n")
+
+# Calculate R-squared (Goodness of Fit)
+r2 <- summary(model)$r.squared
+cat("Goodness of Fit (R-squared):", round(r2, 4), "\n")
+
+# Print Model Coefficients
+cat("\nModel Intercept (b0):", round(coef(model)[1], 4), "\n")
+cat("Model Coefficient (b1):", round(coef(model)[2], 4), "\n")
+
+Practical No 8
+Aim:
+To implement the Logistic Regression classification algorithm using the Scikit-learn library, focusing on
+model training, prediction, and comprehensive evaluation using classification metrics.
+
+# Feature data
+X <- data.frame(x = c(6, 2, 5, 9, 1))
+
+# Target labels
+y <- c(1, 0, 1, 1, 0)
+
+# Combine data
+data <- data.frame(X, y)
+
+# Train Logistic Regression model
+model <- glm(y ~ x, data = data, family = binomial)
+
+# Predicted probabilities
+y_hat_proba <- predict(model, type = "response")
+
+# Predicted class labels
+y_hat_labels <- ifelse(y_hat_proba >= 0.5, 1, 0)
+
+cat("--- Practical No 8: Logistic Regression Analysis ---\n\n")
+
+# Predicted labels
+cat("Predicted class labels:\n")
+print(y_hat_labels)
+
+# Log Loss function
+log_loss <- function(actual, predicted) {
+  -mean(actual * log(predicted) + (1 - actual) * log(1 - predicted))
+}
+
+loss <- log_loss(y, y_hat_proba)
+cat("\nLog Loss:", round(loss, 4), "\n")
+
+# Confusion Matrix
+confusion_matrix <- table(Predicted = y_hat_labels, Actual = y)
+cat("\nConfusion Matrix:\n")
+print(confusion_matrix)
+
+# Precision, Recall, F1-score
+TP <- confusion_matrix["1", "1"]
+FP <- confusion_matrix["1", "0"]
+FN <- confusion_matrix["0", "1"]
+
+precision <- TP / (TP + FP)
+recall <- TP / (TP + FN)
+f1 <- 2 * precision * recall / (precision + recall)
+
+cat("\nPrecision:", round(precision, 4))
+cat("\nRecall:", round(recall, 4))
+cat("\nF1-Score:", round(f1, 4))
+
+Practical No 9
+Aim:
+To implement the Support Vector Machine (SVM) classification algorithm using the Scikit-learn
+library, specifically on a multi-class dataset like the Iris dataset, and evaluate its performance.
+
+# Practical No 9: Classification on Iris Dataset (Online Compiler Version)
+
+# Load required package (comes with base R)
+library(class)
+
+# Load iris dataset
+data(iris)
+
+# Features and target
+X <- iris[, 1:4]
+y <- iris$Species
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Train-test split (90% train, 10% test)
+index <- sample(1:nrow(X), 0.9 * nrow(X))
+
+X_train <- X[index, ]
+X_test  <- X[-index, ]
+
+y_train <- y[index]
+y_test  <- y[-index]
+
+# Apply k-NN classifier (k = 3)
+y_hat <- knn(train = X_train, test = X_test, cl = y_train, k = 3)
+
+cat("--- Practical No 9: Classification Analysis (Iris Dataset) ---\n\n")
+
+# Confusion Matrix
+conf_matrix <- table(Predicted = y_hat, Actual = y_test)
+cat("Confusion Matrix:\n")
+print(conf_matrix)
+
+# Calculate Precision, Recall, F1-score (macro average)
+precision <- mean(diag(conf_matrix) / rowSums(conf_matrix))
+recall <- mean(diag(conf_matrix) / colSums(conf_matrix))
+f1 <- 2 * precision * recall / (precision + recall)
+
+cat("\nPrecision:", round(precision, 4))
+cat("\nRecall:", round(recall, 4))
+cat("\nF1-Score:", round(f1, 4))
+
+
+Practical No 10: Varied Algorithms
+Aim:
+To apply and compare four distinct, fundamental machine learning classification algorithms—Decision
+Tree, Random Forest, K-Nearest Neighbors (KNN), and Gaussian Naive Bayes—on a common
+dataset (Iris) using the Scikit-learn library. 
+
+
+# Practical No 10: Comparison of Varied Classification Algorithms
+# Online R Compiler - FINAL FIXED VERSION
+
+library(class)   # KNN
+library(rpart)   # Decision Tree
+
+# Load dataset
+data(iris)
+
+X <- iris[, 1:4]
+y <- iris$Species
+
+# Target as factor
+y_factor <- as.factor(y)
+
+set.seed(123)
+
+# Train-test split (90% train, 10% test)
+index <- sample(1:nrow(X), 0.9 * nrow(X))
+X_train <- X[index, ]
+y_train <- y_factor[index]
+
+# Test sample
+test_sample <- data.frame(
+  Sepal.Length = 5.1,
+  Sepal.Width  = 3.5,
+  Petal.Length = 1.4,
+  Petal.Width  = 0.2
+)
+
+cat("--- Practical No 10: Comparison of Varied Classification Algorithms ---\n\n")
+
+# ---------------- Decision Tree ----------------
+dt_model <- rpart(y_train ~ ., data = data.frame(X_train, y_train), method = "class")
+dt_pred <- predict(dt_model, test_sample, type = "class")
+cat("Decision Tree Prediction:", as.character(dt_pred), "\n")
+
+# ---------------- KNN ----------------
+knn_pred <- knn(train = X_train, test = test_sample, cl = y_train, k = 3)
+cat("KNN Prediction:", as.character(knn_pred), "\n")
+
+# ---------------- Naive Bayes (Manual Gaussian - FIXED) ----------------
+gaussian_nb <- function(trainX, trainY, testX) {
+  testX <- as.numeric(testX)  # 🔧 FIX
+  classes <- levels(trainY)
+  probs <- numeric(length(classes))
+
+  for (i in seq_along(classes)) {
+    cls <- classes[i]
+    cls_data <- trainX[trainY == cls, ]
+    mean_val <- colMeans(cls_data)
+    sd_val <- apply(cls_data, 2, sd)
+    sd_val[sd_val == 0] <- 1e-6  # 🔧 avoid zero SD
+
+    probs[i] <- sum(dnorm(testX, mean_val, sd_val, log = TRUE))
+  }
+  classes[which.max(probs)]
+}
+
+nb_pred <- gaussian_nb(X_train, y_train, test_sample)
+cat("Naive Bayes Prediction:", nb_pred, "\n")
+
+cat("\nNote: Prediction is for a single sample (expected class = Iris-setosa).\n")
+
+0 = setosa, 1 = versicolor, 2 = virginica
+
+
